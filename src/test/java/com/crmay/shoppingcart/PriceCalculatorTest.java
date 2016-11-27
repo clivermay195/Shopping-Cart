@@ -22,16 +22,46 @@ public class PriceCalculatorTest {
     public void setup() {
         priceCalculator = new PriceCalculator();
 
+        PriceCalculatorFunction twoForOneOfferFunction =
+                (numberOfItems, price) -> price.multiply(new BigDecimal(numberOfItems / 2 + numberOfItems % 2));
+
+        PriceCalculatorFunction threeForTwoOfferFunction =
+                (numberOfItems, price) -> price.multiply(new BigDecimal(numberOfItems - numberOfItems / 3));
+
         Map<String, Product> productMap = new HashMap<>();
-        productMap.put("apple", new Product("apple", new BigDecimal("0.60")));
-        productMap.put("orange", new Product("orange", new BigDecimal("0.25")));
+        productMap.put("apple", new Product("apple", new BigDecimal("0.60"), twoForOneOfferFunction));
+        productMap.put("orange", new Product("orange", new BigDecimal("0.25"), threeForTwoOfferFunction));
         priceCalculator.setProductMap(productMap);
     }
 
     @Test
     public void theOneWhereTheCorrectPriceIsCalculatedFor3ApplesAnd2Oranges() {
         String[] products = {"apple", "APPLE", "   Apple ", "orange", "Orange   "};
-        assertEquals(new BigDecimal("2.30"), priceCalculator.calculate(Arrays.asList(products)));
+        assertEquals(new BigDecimal("1.70"), priceCalculator.calculate(Arrays.asList(products)));
+    }
+
+    @Test
+    public void theOneWhereTheCorrectPriceIsCalculatedFor3ApplesAnd3Oranges() {
+        String[] products = {"apple", "APPLE", "   Apple ", "orange", "Orange   ", "orange"};
+        assertEquals(new BigDecimal("1.70"), priceCalculator.calculate(Arrays.asList(products)));
+    }
+
+    @Test
+    public void theOneWhereTheCorrectPriceIsCalculatedFor2Apples() {
+        String[] products = {"apple", "apple"};
+        assertEquals(new BigDecimal("0.60"), priceCalculator.calculate(Arrays.asList(products)));
+    }
+
+    @Test
+    public void theOneWhereTheCorrectPriceIsCalculatedFor7OrangesApples() {
+        String[] products = {"orange", "orange", "orange", "orange", "orange", "orange", "orange"};
+        assertEquals(new BigDecimal("1.25"), priceCalculator.calculate(Arrays.asList(products)));
+    }
+
+    @Test
+    public void theOneWhereTheCorrectPriceIsCalculatedFor5Apples() {
+        String[] products = {"apple", "apple", "apple", "apple", "apple"};
+        assertEquals(new BigDecimal("1.80"), priceCalculator.calculate(Arrays.asList(products)));
     }
 
     @Test(expected = IllegalArgumentException.class)

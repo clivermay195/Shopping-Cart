@@ -24,9 +24,6 @@ public class PriceCalculator {
 
     private Map<String, Product> productMap;
 
-    PriceCalculatorFunction defaultCalcFunction =
-                (numberOfItems, price) -> price.multiply(new BigDecimal(numberOfItems));
-
     /**
      * Calculate the total price.
      *
@@ -53,10 +50,12 @@ public class PriceCalculator {
         // the number of instances of that product in the productKeyList.
         Map<String, Long> productListMap = productKeyList.stream().collect(groupingBy(identity(), counting()));
 
-        // For each product in the map, pass the total number of items and the product price to default price calculator
-        // function to calculate the total price for that product and finally return the total price for all products.
+        // For each product in the map, pass the total number of items and the product price to product's price
+        // price calculator function to calculate the total price for that product and finally return the total
+        // price for all products.
         return productListMap.entrySet().stream()
-                .map(e  ->  defaultCalcFunction.apply(e.getValue(), productMap.get(e.getKey()).getPrice()))
+                .map(e  ->  productMap.get(e.getKey()).getPriceCalcFunc().apply(
+                        e.getValue(), productMap.get(e.getKey()).getPrice()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
