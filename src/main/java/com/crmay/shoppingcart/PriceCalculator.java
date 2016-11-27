@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -41,8 +44,14 @@ public class PriceCalculator {
         if (!unknownProductSet.isEmpty()) {
             throw new IllegalArgumentException("Unknown products : " + new TreeSet<>(unknownProductSet));
         }
-        return productKeyList.stream()
-                .map(p -> productMap.get(p).getPrice().multiply(BigDecimal.ONE))
+
+        // Need to calculate the number of each product in the list so that price calculations can be performed
+        // on each product individually. Therefore create a map where key is the product name and the value is
+        // the number of instances of that product in the productKeyList.
+        Map<String, Long> productListMap = productKeyList.stream().collect(groupingBy(identity(), counting()));
+
+        return productListMap.entrySet().stream()
+                .map(e  ->  productMap.get(e.getKey()).getPrice().multiply(new BigDecimal(e.getValue())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
