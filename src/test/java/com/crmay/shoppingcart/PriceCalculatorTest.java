@@ -12,7 +12,7 @@ import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.fail;
 
 /**
- * Created by Clive on 26/11/2016.
+ * Created by Clive May on 26/11/2016.
  */
 public class PriceCalculatorTest {
 
