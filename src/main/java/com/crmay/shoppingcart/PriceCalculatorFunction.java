@@ -1,6 +1,7 @@
 package com.crmay.shoppingcart;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 /**
  * Function interface for all functions called by the <code>PriceCalculator</code> which calculate the total price
@@ -13,9 +14,9 @@ public interface PriceCalculatorFunction {
     /**
      * Calculate the total price for all items of the same product.
      *
-     * @param numberOfItems the number of items
-     * @param price         the price
+     * @param product         the product to calculate the price for.
+     * @param productCountMap the map keyed by product which contains the number of each item in the basket.
      * @return the total price
      */
-    BigDecimal apply (Long numberOfItems, BigDecimal price);
+    BigDecimal apply (Product product, Map<Product, Long> productCountMap);
 }

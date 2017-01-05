@@ -5,8 +5,11 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.fail;
@@ -22,15 +25,40 @@ public class PriceCalculatorTest {
     public void setup() {
         priceCalculator = new PriceCalculator();
 
-        PriceCalculatorFunction twoForOneOfferFunction =
-                (numberOfItems, price) -> price.multiply(new BigDecimal(numberOfItems / 2 + numberOfItems % 2));
+        PriceCalculatorFunction noOfferFunction = (product, productCountMap) -> {
+            long numberOfItems = productCountMap.get(product);
+            return product.getPrice().multiply(new BigDecimal(numberOfItems));
+        };
+
+        PriceCalculatorFunction twoForOneCheapestOfferFunction = (product, productCountMap) -> {
+            // Filter out products which do not use the twoForOneCheapestOfferFunction or have only one item so the
+            // offer does not apply. i.e. if only 1 banana, apply offer to apples.
+            List<Map.Entry<Product, Long>> twoForOneOfferProductMap = productCountMap.entrySet().stream().filter(
+                    e -> e.getValue() > 1 && e.getKey().getPriceCalcFunc().equals(product.getPriceCalcFunc()))
+                    .collect(Collectors.toList());
+
+            // Identify the cheapest product that twoForOne applies to.
+            Product cheapestProduct = twoForOneOfferProductMap.stream().min(
+                    Comparator.comparing(e -> e.getKey().getPrice())).get().getKey();
+
+            if (product.equals(cheapestProduct)) {
+                long numberOfItems = productCountMap.get(product);
+                return product.getPrice().multiply(new BigDecimal(numberOfItems / 2 + numberOfItems % 2));
+            } else {
+                return noOfferFunction.apply(product, productCountMap);
+            }
+        };
 
         PriceCalculatorFunction threeForTwoOfferFunction =
-                (numberOfItems, price) -> price.multiply(new BigDecimal(numberOfItems - numberOfItems / 3));
+                (product, productCountMap) -> {
+                    long numberOfItems = productCountMap.get(product);
+                    return product.getPrice().multiply(new BigDecimal(numberOfItems - numberOfItems / 3));
+                };
 
         Map<String, Product> productMap = new HashMap<>();
-        productMap.put("apple", new Product("apple", new BigDecimal("0.60"), twoForOneOfferFunction));
+        productMap.put("apple", new Product("apple", new BigDecimal("0.60"), twoForOneCheapestOfferFunction));
         productMap.put("orange", new Product("orange", new BigDecimal("0.25"), threeForTwoOfferFunction));
+        productMap.put("banana", new Product("banana", new BigDecimal("0.20"), twoForOneCheapestOfferFunction));
         priceCalculator.setProductMap(productMap);
     }
 
@@ -44,6 +72,18 @@ public class PriceCalculatorTest {
     public void theOneWhereTheCorrectPriceIsCalculatedFor3ApplesAnd3Oranges() {
         String[] products = {"apple", "APPLE", "   Apple ", "orange", "Orange   ", "orange"};
         assertEquals(new BigDecimal("1.70"), priceCalculator.calculate(Arrays.asList(products)));
+    }
+
+    @Test
+    public void theOneWhereTheCorrectPriceIsCalculatedFor3Apples3OrangesAnd3Bananas() {
+        String[] products = {"apple", "apple", "apple", "orange", "orange", "orange", "banana", "banana"};
+        assertEquals(new BigDecimal("2.50"), priceCalculator.calculate(Arrays.asList(products)));
+    }
+
+    @Test
+    public void theOneWhereTheCorrectPriceIsCalculatedFor3Apples3OrangesAnd1Bananas() {
+        String[] products = {"apple", "apple", "apple", "orange", "orange", "orange", "banana"};
+        assertEquals(new BigDecimal("1.90"), priceCalculator.calculate(Arrays.asList(products)));
     }
 
     @Test
@@ -78,18 +118,18 @@ public class PriceCalculatorTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void theOneWhereThereAreMultipleInvalidProducts() {
-        String[] products = {"apple", "APPLE", "pear", "Banana"};
+        String[] products = {"apple", "APPLE", "pear", "grape"};
         priceCalculator.calculate(Arrays.asList(products));
     }
 
     @Test
     public void theOneWhereThereAreMultipleInvalidProductsWithTheSameName() {
         try {
-            String[] products = {"apple", "APPLE", "pear  ", "pear", "Banana"};
+            String[] products = {"apple", "APPLE", "pear  ", "pear", "grape"};
             priceCalculator.calculate(Arrays.asList(products));
             fail("IllegalArgumentException should have been thrown");
         } catch (Throwable t) {
-            assertEquals("Unknown products : [banana, pear]", t.getMessage());
+            assertEquals("Unknown products : [grape, pear]", t.getMessage());
         }
     }
 }
