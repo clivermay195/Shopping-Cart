@@ -37,6 +37,11 @@ public class PriceCalculatorTest {
                     e -> e.getValue() > 1 && e.getKey().getPriceCalcFunc().equals(product.getPriceCalcFunc()))
                     .collect(Collectors.toList());
 
+            if (twoForOneOfferProductMap.isEmpty()) {
+                // Only one item so no offer to apply.
+                return product.getPrice();
+            }
+
             // Identify the cheapest product that twoForOne applies to.
             Product cheapestProduct = twoForOneOfferProductMap.stream().min(
                     Comparator.comparing(e -> e.getKey().getPrice())).get().getKey();
@@ -84,6 +89,24 @@ public class PriceCalculatorTest {
     public void theOneWhereTheCorrectPriceIsCalculatedFor3Apples3OrangesAnd1Bananas() {
         String[] products = {"apple", "apple", "apple", "orange", "orange", "orange", "banana"};
         assertEquals(new BigDecimal("1.90"), priceCalculator.calculate(Arrays.asList(products)));
+    }
+
+    @Test
+    public void theOneWhereTheCorrectPriceIsCalculatedFor1Apples3OrangesAnd1Bananas() {
+        String[] products = {"apple", "orange", "orange", "orange", "banana"};
+        assertEquals(new BigDecimal("1.30"), priceCalculator.calculate(Arrays.asList(products)));
+    }
+
+    @Test
+    public void theOneWhereTheCorrectPriceIsCalculatedFor1Apple() {
+        String[] products = {"apple"};
+        assertEquals(new BigDecimal("0.60"), priceCalculator.calculate(Arrays.asList(products)));
+    }
+
+    @Test
+    public void theOneWhereTheCorrectPriceIsCalculatedFor1AppleAnd1Banana() {
+        String[] products = {"apple", "banana"};
+        assertEquals(new BigDecimal("0.80"), priceCalculator.calculate(Arrays.asList(products)));
     }
 
     @Test
